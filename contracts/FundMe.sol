@@ -4,14 +4,20 @@ pragma solidity ^0.8.18;
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
 
-import './PriceConverter.sol';
+import "./PriceConverter.sol";
 
-error NotOwner();
+error FundMe__NotOwner();
 
+/**
+ *@title A contract for crowd funding
+ *@author Biruk Kebede
+ *@notice This contract is a demo of sample contract
+ *@dev This contract implements price feeds as our library
+ */
 contract FundMe {
+	// Type declarations first
 	using PriceConverter for uint256;
 	// Get funds from users
-	// uint256 public minimumUsd = 50 * 1e18; // 1 * 10 ** 18
 	// constant variable naming convention --> cheeper gas price to read from
 	uint256 public constant MINIMUM_USD = 50 * 1e18; // 1 * 10 ** 18
 
@@ -19,14 +25,27 @@ contract FundMe {
 	mapping(address => uint256) public addressToAmountFunded;
 
 	// immutable variables are also gas savers
-	address public immutable immutableOwner;
+	address public immutable owner;
 
 	AggregatorV3Interface public priceFeed;
 
+	modifier onlyOwner() {
+		// require(msg.sender == owner, "Sender is not owner!");
+		if (msg.sender != owner) {
+			revert FundMe__NotOwner();
+		}
+		_; // running the rest of the code
+	}
+
 	constructor(address priceFeedAddress) {
-		immutableOwner = msg.sender;
+		owner = msg.sender;
 		priceFeed = AggregatorV3Interface(priceFeedAddress);
 	}
+
+	/**
+	 *@notice This function funds contract
+	 *@dev This contract implements price feeds as our library
+	 */
 
 	function fund() public payable {
 		// Set minimum funding value in USD
@@ -56,16 +75,8 @@ contract FundMe {
 		// call
 		(bool callSuccess, ) = payable(msg.sender).call{
 			value: address(this).balance
-		}('');
-		require(callSuccess, 'Call failed');
-	}
-
-	modifier onlyOwner() {
-		// require(msg.sender == immutableOwner, "Sender is not owner!");
-		if (msg.sender != immutableOwner) {
-			revert NotOwner();
-		}
-		_; // running the rest of the code
+		}("");
+		require(callSuccess, "Call failed");
 	}
 
 	receive() external payable {

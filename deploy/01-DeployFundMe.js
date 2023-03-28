@@ -19,19 +19,24 @@ module.exports = async (hre) => {
 	}
 
 	log("Deploying FundMe and waiting for confirmations...")
+
+	const args = [ethUsdPriceFeedAddress]
+
 	const fundMe = await deploy("FundMe", {
 		from: deployer,
-		args: [ethUsdPriceFeedAddress], // price feed address
+		args: args, // price feed address
 		log: true,
 		waitConfirmations: network.config.blockConfirmations || 1,
 	})
+
 	log(`FundMe deployed at ${fundMe.address}`)
 	log("-------------------------------------------------------")
+
 	if (
 		!developmentChains.includes(network.name) &&
 		process.env.ETHERSCAN_API_KEY
 	) {
-		await verify(fundMe.address, [ethUsdPriceFeedAddress])
+		await verify(fundMe.address, args)
 	}
 }
 
