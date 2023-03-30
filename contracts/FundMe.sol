@@ -21,23 +21,24 @@ contract FundMe {
 	// constant variable naming convention --> cheeper gas price to read from
 	uint256 public constant MINIMUM_USD = 50 * 1e18; // 1 * 10 ** 18
 
-	address[] public funders;
-	mapping(address => uint256) public addressToAmountFunded;
+	address[] public storeFunders;
+	// mapping(address => uint256) public addressToAmountFunded;
+	mapping(address => uint256) private storeAddressToAmountFunded;
 
 	// immutable variables are also gas savers
-	address public immutable owner;
+	address public immutable immutableOwner;
 
-	AggregatorV3Interface public priceFeed;
+	AggregatorV3Interface private storePriceFeed;
 
 	modifier onlyOwner() {
-		// require(msg.sender == owner, "Sender is not owner!");
-		if (msg.sender != owner) revert FundMe__NotOwner();
+		// require(msg.sender == immutableOwner, "Sender is not immutableOwner!");
+		if (msg.sender != immutableOwner) revert FundMe__NotOwner();
 		_; // running the rest of the code
 	}
 
 	constructor(address priceFeedAddress) {
-		priceFeed = AggregatorV3Interface(priceFeedAddress);
-		owner = msg.sender;
+		storePriceFeed = AggregatorV3Interface(priceFeedAddress);
+		immutableOwner = msg.sender;
 	}
 
 	/**
@@ -49,20 +50,24 @@ contract FundMe {
 		// Set minimum funding value in USD
 		// How do we send ETH to this contract?
 		require(
-			msg.value.getConversionRate(priceFeed) >= MINIMUM_USD,
+			msg.value.getConversionRate(storePriceFeed) >= MINIMUM_USD,
 			"Insufficient amount. Please send more ether!"
 		); // 1e18 == 1 * 10 ** 18 == 1000000000000000000
-		funders.push(msg.sender);
-		addressToAmountFunded[msg.sender] = msg.value;
+		storeAddressToAmountFunded[msg.sender] += msg.value;
+		storeFunders.push(msg.sender);
 	}
 
 	// Withdraw funds
 	function withdraw() public onlyOwner {
-		for (uint256 funderIndex = 0; funderIndex < funders.length; funderIndex++) {
-			address funder = funders[funderIndex];
-			addressToAmountFunded[funder] = 0;
+		for (
+			uint256 funderIndex = 0;
+			funderIndex < storeFunders.length;
+			funderIndex++
+		) {
+			address funder = storeFunders[funderIndex];
+			storeAddressToAmountFunded[funder] = 0;
 		}
-		funders = new address[](0);
+		storeFunders = new address[](0);
 
 		// payable (msg.sender) --> payable address
 		// transfer
@@ -75,6 +80,45 @@ contract FundMe {
 			value: address(this).balance
 		}("");
 		require(callSuccess, "Call failed");
+	}
+
+	function cheaperWithdraw() public onlyOwner {
+		// address[] memory storeFunders = storeFunders;
+		// mappings can't be in memory, sorry!
+		for (
+			uint256 funderIndex = 0;
+			funderIndex < storeFunders.length;
+			funderIndex++
+		) {
+			address funder = storeFunders[funderIndex];
+			storeAddressToAmountFunded[funder] = 0;
+		}
+		storeFunders = new address[](0);
+		// payable(msg.sender).transfer(address(this).balance);
+		(bool success, ) = immutableOwner.call{value: address(this).balance}("");
+		require(success);
+	}
+
+	function getAddressToAmountFunded(
+		address fundingAddress
+	) public view returns (uint256) {
+		return storeAddressToAmountFunded[fundingAddress];
+	}
+
+	function getFunder(uint256 index) public view returns (address) {
+		return storeFunders[index];
+	}
+
+	function getVersion() public view returns (uint256) {
+		return storePriceFeed.version();
+	}
+
+	function getOwner() public view returns (address) {
+		return immutableOwner;
+	}
+
+	function getPriceFeed() public view returns (AggregatorV3Interface) {
+		return storePriceFeed;
 	}
 
 	receive() external payable {

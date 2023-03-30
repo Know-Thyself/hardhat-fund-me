@@ -23,7 +23,7 @@ const { network, deployments, ethers } = require("hardhat")
 
 			describe("constructor", async function () {
 				it("Should set the aggregator addresses correctly", async () => {
-					const response = await fundMe.priceFeed()
+					const response = await fundMe.getPriceFeed()
 					assert.equal(response, mockV3Aggregator.address)
 				})
 			})
@@ -37,13 +37,13 @@ const { network, deployments, ethers } = require("hardhat")
 
 				it("Updates the amount funded data structure", async () => {
 					await fundMe.fund({ value: sendValue })
-					const response = await fundMe.addressToAmountFunded(deployer)
+					const response = await fundMe.getAddressToAmountFunded(deployer)
 					assert.equal(response.toString(), sendValue.toString())
 				})
 
 				it("Adds funder to array of funders", async () => {
 					await fundMe.fund({ value: sendValue })
-					const response = await fundMe.funders(0)
+					const response = await fundMe.storeFunders(0)
 					assert.equal(response, deployer)
 				})
 			})
@@ -52,7 +52,7 @@ const { network, deployments, ethers } = require("hardhat")
 				beforeEach(async () => {
 					await fundMe.fund({ value: sendValue })
 				})
-				
+
 				it("withdraws ETH from a single funder", async () => {
 					// Arrange
 					const startingFundMeBalance = await fundMe.provider.getBalance(
@@ -101,7 +101,7 @@ const { network, deployments, ethers } = require("hardhat")
 					)
 
 					// Act
-					const transactionResponse = await fundMe.withdraw()
+					const transactionResponse = await fundMe.cheaperWithdraw()
 					// Let's comapre gas costs :)
 					// const transactionResponse = await fundMe.withdraw()
 					const transactionReceipt = await transactionResponse.wait()
@@ -122,11 +122,11 @@ const { network, deployments, ethers } = require("hardhat")
 						endingDeployerBalance.add(withdrawGasCost).toString()
 					)
 					// Make a getter for storage variables
-					await expect(fundMe.funders(0)).to.be.reverted
+					await expect(fundMe.getFunder(0)).to.be.reverted
 
 					for (i = 1; i < 6; i++) {
 						assert.equal(
-							await fundMe.addressToAmountFunded(accounts[i].address),
+							await fundMe.getAddressToAmountFunded(accounts[i].address),
 							0
 						)
 					}
