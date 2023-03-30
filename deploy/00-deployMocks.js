@@ -8,7 +8,7 @@ const {
 module.exports = async ({ getNamedAccounts, deployments }) => {
 	const { deploy, log } = deployments
 	const { deployer } = await getNamedAccounts()
-	// const chainId = network.config.chainId
+	const chainId = network.config.chainId
 
 	if (developmentChains.includes(network.name)) {
 		log("Deploying mocks to local networks ...")
@@ -16,7 +16,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 			contract: "MockV3Aggregator",
 			from: deployer,
 			log: true,
-			args: [DECIMALS.toString(), INITIAL_PRICE.toString()],
+			args: [DECIMALS, INITIAL_PRICE],
 		})
 
 		log("Mocks deployed!")

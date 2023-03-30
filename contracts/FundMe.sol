@@ -38,8 +38,8 @@ contract FundMe {
 	}
 
 	constructor(address priceFeedAddress) {
-		owner = msg.sender;
 		priceFeed = AggregatorV3Interface(priceFeedAddress);
+		owner = msg.sender;
 	}
 
 	/**
@@ -52,7 +52,7 @@ contract FundMe {
 		// How do we send ETH to this contract?
 		require(
 			msg.value.getConversionRate(priceFeed) >= MINIMUM_USD,
-			"Didn't send enough"
+			"Insufficient amount. Please send more ether!"
 		); // 1e18 == 1 * 10 ** 18 == 1000000000000000000
 		funders.push(msg.sender);
 		addressToAmountFunded[msg.sender] = msg.value;
